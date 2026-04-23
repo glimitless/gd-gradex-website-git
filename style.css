@@ -1,0 +1,274 @@
+*{
+    /* Reset default browser spacing so layout starts from a known baseline. */
+    margin: 0;
+    /*
+        border-box sizing means width/height include padding and border.
+        This makes fixed-size elements (like preview windows) easier to reason
+        about and prevents accidental overflow from additive box model math.
+    */
+    box-sizing: border-box;
+}
+/*
+    Global rem calibration:
+    Setting html font-size to 12.5px makes rem values easy to convert mentally
+    (e.g., 1.6rem = 20px). This creates consistent proportional scaling.
+*/
+html{
+    font-size: 12.5px;
+}
+
+/*
+    Body defaults:
+    - Establishes the project font for all inherited text
+    - Adds outer whitespace so content does not touch viewport edges
+*/
+body{
+    font-family: 'Plantin MT Pro', sans-serif;
+    padding: 24px;
+    
+}
+
+/*
+    Title container:
+    Kept width-aligned with the grid so heading and cards share the same visual
+    column boundaries.
+*/
+.header-container{
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 3rem;
+}
+.header-container h1{
+    font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
+    font-weight: 400;
+    margin: 0;
+    font-size: 3rem;
+    text-transform: uppercase;
+    line-height: 3.5rem;
+    letter-spacing: 0.025em;
+    margin-bottom: 0rem;
+}
+
+/*
+    Main shell:
+    - full-width wrapper with minimum viewport height
+    - flex column for vertical stacking (header above grid)
+    - horizontal centering for both header and grid containers
+*/
+.content-container{
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+/*
+    Archive grid:
+    A fixed 6-column system for desktop prototype view.
+    `minmax(0, 1fr)` prevents grid-item overflow from forcing columns wider.
+*/
+.grid-container{
+    width: 100%;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+/*
+    Individual card wrapper:
+    Vertical flow for image -> artist -> work title with small rhythm spacing.
+*/
+.grid-item{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+/*
+    Thumbnail presentation:
+    - starts as a random "paper cut" silhouette via CSS custom property
+    - smoothly transitions to a full square on hover using second variable
+    - cursor pointer communicates that thumbnail is interactive (opens preview)
+*/
+.grid-item-thumbnail{
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 0;
+    margin-bottom: 0.5rem;
+    clip-path: var(--clip-random);
+    -webkit-clip-path: var(--clip-random);
+    transition: clip-path 260ms ease, -webkit-clip-path 260ms ease;
+    cursor: pointer;
+}
+
+.grid-item:hover .grid-item-thumbnail{
+    clip-path: var(--clip-full);
+    -webkit-clip-path: var(--clip-full);
+}
+
+/*
+    "Pinned open" thumbnail state:
+    JS adds this class while one or more preview windows are open for an item.
+    This mirrors the hover shape so the expanded visual persists after mouseout.
+*/
+.grid-item-thumbnail.grid-item-thumbnail--pinned-open{
+    clip-path: var(--clip-full);
+    -webkit-clip-path: var(--clip-full);
+}
+
+/* Artist label styling (per card). */
+.grid-item-heading{
+    font-family: 'Plantin MT Pro', serif;
+    font-size: 1.25rem;
+    font-weight: 400;
+    margin-bottom: 0;
+}
+
+/* Secondary metadata under artist name (work title). */
+.grid-item-work-name{
+    font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: #333;
+}
+
+/*
+    Floating preview window (spawned by JS on thumbnail click):
+    - fixed positioning allows desktop-like independent windows
+    - explicit width/height set initial footprint
+    - min-size safeguards prevent collapsing while resizing
+    - resize: both allows bottom-right drag to resize in supporting browsers
+*/
+.preview-window{
+    position: fixed;
+    width: 30rem;
+    height: 35rem;
+    min-width: 15rem;
+    min-height: 15rem;
+    border: 1px solid #1f1f1f;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    resize: both;
+}
+
+/*
+    Draggable header strip:
+    JS attaches pointer drag behavior to this area only.
+    user-select is disabled so dragging does not highlight text.
+*/
+.preview-window-header{
+    min-height: 2.4rem;
+    padding: 0.75rem 0.75rem;
+    border-bottom: 1px solid #e2e2e2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    user-select: none;
+}
+
+/*
+    Window title:
+    Ellipsis prevents long artist/work names from breaking header layout.
+*/
+.preview-window-title{
+    font-size: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/*
+    Close button:
+    Styled as icon-like control. JS click handler removes parent window node.
+*/
+.preview-window-close{
+    border: 0;
+    background: transparent;
+    font-size: 1.375rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+/*
+    Main window content stack:
+    - grows to fill available height
+    - vertical layout: image first, details card second
+    - overflow:auto lets content scroll when resized smaller than content needs
+*/
+.preview-window-content{
+    flex: 1;
+    min-height: 0;
+    padding: 0.5rem;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow: auto;
+}
+
+/*
+    Preview image behavior:
+    Uses contain so full artwork remains visible without cropping.
+    height: 65% reserves lower area for description + documentation link.
+*/
+.preview-window-image{
+    width: 100%;
+    min-height: 0;
+    height: 65%;
+    object-fit: contain;
+}
+
+/*
+    Metadata panel under image:
+    Light border and white background separate text from gray content area.
+*/
+.preview-window-details{
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    background: #fff;
+    border: 1px solid #e2e2e2;
+    padding: 0.5rem;
+}
+.preview-window-details p{
+    font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
+    font-weight: 400;
+    font-size: 1.5rem;
+    letter-spacing: 0.05em;
+    line-height: 1.35;
+    color: #222;
+}
+
+/* Project description paragraph typography. */
+.preview-window-description{
+    margin-bottom: 1.25rem;
+}
+
+/* .preview-window-link-intro{
+
+} */
+/*
+    Documentation URL link:
+    word-break prevents very long URLs from overflowing narrow window widths.
+*/
+.preview-window-link{
+    font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
+    font-weight: 400;
+    font-size: 1.5rem;
+    letter-spacing: 0.05em;
+    color: #0047b3;
+    text-decoration: underline;
+    word-break: break-all;
+}
