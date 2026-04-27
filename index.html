@@ -4,57 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GDX Prototype-1</title>
-
     <link href="https://fonts.cdnfonts.com/css/plantin-mt-pro" rel="stylesheet">
     <link href="https://fonts.cdnfonts.com/css/neue-haas-grotesk-display-pro" rel="stylesheet">
-
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!--
-        Main page wrapper:
-        Keeps title + archive grid centered and constrained to max width.
-        JS does not replace this wrapper; it only injects cards inside
-        .grid-container so the page shell remains stable.
-    -->
     <div class="content-container">
-
-        <!--
-            Header region:
-            Static semantic heading so users and screen readers immediately know
-            the exhibit context before interactive content is injected.
-        -->
-        <div class="header-container">
-            <div class="header-actions">
-                <input
-                    id="archive-search"
-                    class="archive-search-input"
-                    type="search"
-                    placeholder="Search artist or work"
-                    aria-label="Search by artist name or work name"
-                >
-            </div>
-            <h1>GradEX 111</h1>
-            <h1>Graphic Design: CUTS</h1>
-        </div>
-
-        <!--
-            Grid mount point:
-            Starts empty in HTML by design. main.js reads sampleItems and creates
-            one card per entry (thumbnail + artist name + work title), then binds
-            click handlers that open floating preview windows.
-        -->
-        <div class="grid-container"></div>
-        
+        <main class="archive-panel">
+            <header class="header-container">
+                <div class="header-actions">
+                    <input
+                        id="archive-search"
+                        class="archive-search-input"
+                        type="search"
+                        placeholder="Search artist or work"
+                        aria-label="Search by artist name or work name"
+                    >
+                </div>
+                <h1>GradEX 111</h1>
+                <h1>Graphic Design: CUTS</h1>
+            </header>
+            <div class="grid-container"></div>
+        </main>
     </div>
-    <!--
-        App script:
-        Runs after body markup so querySelector calls can find DOM nodes.
-        Responsible for:
-        1) rendering cards
-        2) generating organic clip-path silhouettes
-        3) opening/stacking/dragging/resizing/closing preview windows
-    -->
     <script src="./js/main.js"></script>
 </body>
 </html>

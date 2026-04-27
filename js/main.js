@@ -586,58 +586,38 @@ const sampleItems = [
     }
 ];
 
-/*
-    ----------------------------------------------------------------------------
-    2) RENDER LAYER
-    ----------------------------------------------------------------------------
-*/
-function populateGrid(items) {
-    const gridContainer = document.querySelector(".grid-container");
+const GRID_ITEM_SELECTOR = ".grid-item";
+const THUMBNAIL_SELECTOR = ".grid-item-thumbnail";
+const PREVIEW_PADDING = 8;
+const FULL_CLIP_PATH = createFullSquareClipPath(24);
 
-    if (!gridContainer) return;
+const gridContainer = document.querySelector(".grid-container");
+const searchInput = document.querySelector("#archive-search");
 
-    gridContainer.innerHTML = items.map(({ item, sourceIndex }) => `
-        <article class="grid-item" data-item-index="${sourceIndex}">
-            <img class="grid-item-thumbnail" src="${item.thumbnail}" alt="${item.workName}">
-            <h3 class="grid-item-heading">${item.artistName}</h3>
-            <p class="grid-item-work-name">${item.workName}</p>
-        </article>
-    `).join("");
-
-    applyRandomCutShapes();
-    setupThumbnailWindowLauncher(sampleItems);
-
-    openPreviewCountByItemIndex.forEach((openCount, sourceIndex) => {
-        setThumbnailExpandedState(sourceIndex, openCount > 0);
-    });
-}
-
-/*
-    ----------------------------------------------------------------------------
-    3) VISUAL SHAPE SYSTEM
-    ----------------------------------------------------------------------------
-*/
-function getRandomInRange(min, max) {
-    return Math.random() * (max - min) + min;
-}
+let highestPreviewWindowZIndex = 10;
+let previewWindowOpenCount = 0;
+const randomClipPathByItemIndex = new Map();
+const openPreviewCountByItemIndex = new Map();
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+}
+
+function getRandomInRange(min, max) {
+    return Math.random() * (max - min) + min;
 }
 
 function isValidItemIndex(itemIndex) {
     return Number.isInteger(itemIndex) && itemIndex >= 0;
 }
 
-function createCircularCutClipPath() {
-    const points = 24;
+function createCircularCutClipPath(points = 24) {
     const baseRadius = getRandomInRange(38, 45);
     const variation = getRandomInRange(4, 10);
     const coords = [];
 
-    for (let i = 0; i < points; i++) {
+    for (let i = 0; i < points; i += 1) {
         const angle = (Math.PI * 2 * i) / points;
-        // Slight radius noise creates an organic, hand-cut edge.
         const radius = baseRadius + getRandomInRange(-variation, variation);
         const x = clamp(50 + Math.cos(angle) * radius, 2, 98);
         const y = clamp(50 + Math.sin(angle) * radius, 2, 98);
@@ -649,97 +629,55 @@ function createCircularCutClipPath() {
 
 function createFullSquareClipPath(points) {
     const coords = [];
-
-    for (let i = 0; i < points; i++) {
+    for (let i = 0; i < points; i += 1) {
         const angle = (Math.PI * 2 * i) / points;
         const dx = Math.cos(angle);
         const dy = Math.sin(angle);
         const scale = 50 / Math.max(Math.abs(dx), Math.abs(dy));
-        const x = clamp(50 + dx * scale, 0, 100);
-        const y = clamp(50 + dy * scale, 0, 100);
-
-        coords.push(`${x.toFixed(2)}% ${y.toFixed(2)}%`);
+        coords.push(
+            `${clamp(50 + dx * scale, 0, 100).toFixed(2)}% ${clamp(50 + dy * scale, 0, 100).toFixed(2)}%`
+        );
     }
-
     return `polygon(${coords.join(", ")})`;
 }
 
-const randomClipPathByItemIndex = new Map();
-
 function getRandomClipPathForItem(itemIndex) {
-    if (!isValidItemIndex(itemIndex)) {
-        return createCircularCutClipPath();
-    }
-
+    if (!isValidItemIndex(itemIndex)) return createCircularCutClipPath();
     if (!randomClipPathByItemIndex.has(itemIndex)) {
         randomClipPathByItemIndex.set(itemIndex, createCircularCutClipPath());
     }
-
     return randomClipPathByItemIndex.get(itemIndex);
 }
 
-function applyRandomCutShapes() {
-    const gridItems = document.querySelectorAll(".grid-item");
-    const fullClipPath = createFullSquareClipPath(24);
-
-    gridItems.forEach((gridItem) => {
-        const thumbnail = gridItem.querySelector(".grid-item-thumbnail");
-        if (!thumbnail) return;
-
-        const itemIndex = Number(gridItem.dataset.itemIndex);
-        const clipPath = getRandomClipPathForItem(itemIndex);
-        thumbnail.style.setProperty("--clip-random", clipPath);
-        thumbnail.style.setProperty("--clip-full", fullClipPath);
-    });
-}
-
-/*
-    ----------------------------------------------------------------------------
-    4) WINDOWING SYSTEM
-    ----------------------------------------------------------------------------
-    Global interaction state:
-    - highestPreviewWindowZIndex:
-      Tracks top stack level so we can always place the active window above others.
-      Starts above default page content to avoid accidental overlap issues.
-    - previewWindowOpenCount:
-      Used to stagger initial spawn positions (a cascading desktop-window effect).
-*/
-let highestPreviewWindowZIndex = 10;
-let previewWindowOpenCount = 0;
-/*
-    Per-item open-window counter:
-    key   = item index from sampleItems
-    value = number of currently open preview windows for that item
-
-    We use a counter (instead of boolean) because users can open multiple windows
-    for the same item. The thumbnail should stay expanded until the LAST one closes.
-*/
-const openPreviewCountByItemIndex = new Map();
-
 function setThumbnailExpandedState(itemIndex, shouldExpand) {
     if (!isValidItemIndex(itemIndex)) return;
-
     const thumbnail = document.querySelector(
-        `.grid-item[data-item-index="${itemIndex}"] .grid-item-thumbnail`
+        `${GRID_ITEM_SELECTOR}[data-item-index="${itemIndex}"] ${THUMBNAIL_SELECTOR}`
     );
     if (!thumbnail) return;
-
     thumbnail.classList.toggle("grid-item-thumbnail--pinned-open", shouldExpand);
 }
 
 function updateOpenPreviewCount(itemIndex, delta) {
     if (!isValidItemIndex(itemIndex) || delta === 0) return;
-
-    const currentCount = openPreviewCountByItemIndex.get(itemIndex) || 0;
-    const nextCount = Math.max(0, currentCount + delta);
-
+    const nextCount = Math.max(0, (openPreviewCountByItemIndex.get(itemIndex) || 0) + delta);
     if (nextCount === 0) {
         openPreviewCountByItemIndex.delete(itemIndex);
     } else {
         openPreviewCountByItemIndex.set(itemIndex, nextCount);
     }
-
     setThumbnailExpandedState(itemIndex, nextCount > 0);
+}
+
+function applyRandomCutShapes() {
+    if (!gridContainer) return;
+    gridContainer.querySelectorAll(GRID_ITEM_SELECTOR).forEach((gridItem) => {
+        const thumbnail = gridItem.querySelector(THUMBNAIL_SELECTOR);
+        if (!thumbnail) return;
+        const itemIndex = Number(gridItem.dataset.itemIndex);
+        thumbnail.style.setProperty("--clip-random", getRandomClipPathForItem(itemIndex));
+        thumbnail.style.setProperty("--clip-full", FULL_CLIP_PATH);
+    });
 }
 
 function bringPreviewWindowToFront(previewWindow) {
@@ -748,14 +686,66 @@ function bringPreviewWindowToFront(previewWindow) {
 }
 
 function getPreviewWindowStartPosition() {
-    const baseOffset = 25;
-    const stepOffset = 25;
-    const sequenceOffset = (previewWindowOpenCount % 10) * stepOffset;
+    const sequenceOffset = (previewWindowOpenCount % 10) * 25;
     previewWindowOpenCount += 1;
+    return {
+        left: clamp(25 + sequenceOffset, PREVIEW_PADDING, window.innerWidth - 220),
+        top: clamp(25 + sequenceOffset, PREVIEW_PADDING, window.innerHeight - 220),
+    };
+}
 
-    const left = clamp(baseOffset + sequenceOffset, 8, window.innerWidth - 220);
-    const top = clamp(baseOffset + sequenceOffset, 8, window.innerHeight - 220);
-    return { left, top };
+function setupPreviewWindowDragging(previewWindow, dragHandle) {
+    dragHandle.style.cursor = "move";
+    dragHandle.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        if (event.target.closest(".preview-window-close, .preview-window-link")) return;
+
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startLeft = previewWindow.offsetLeft;
+        const startTop = previewWindow.offsetTop;
+        let rafId = null;
+        let pendingLeft = startLeft;
+        let pendingTop = startTop;
+
+        bringPreviewWindowToFront(previewWindow);
+        dragHandle.setPointerCapture(event.pointerId);
+
+        const flushPosition = () => {
+            previewWindow.style.left = `${pendingLeft}px`;
+            previewWindow.style.top = `${pendingTop}px`;
+            rafId = null;
+        };
+
+        const onPointerMove = (moveEvent) => {
+            const maxLeft = Math.max(
+                PREVIEW_PADDING,
+                window.innerWidth - previewWindow.offsetWidth - PREVIEW_PADDING
+            );
+            const maxTop = Math.max(
+                PREVIEW_PADDING,
+                window.innerHeight - previewWindow.offsetHeight - PREVIEW_PADDING
+            );
+            pendingLeft = clamp(startLeft + (moveEvent.clientX - startX), PREVIEW_PADDING, maxLeft);
+            pendingTop = clamp(startTop + (moveEvent.clientY - startY), PREVIEW_PADDING, maxTop);
+            if (rafId === null) rafId = window.requestAnimationFrame(flushPosition);
+        };
+
+        const stopDragging = () => {
+            if (rafId !== null) {
+                window.cancelAnimationFrame(rafId);
+                flushPosition();
+            }
+            dragHandle.releasePointerCapture(event.pointerId);
+            dragHandle.removeEventListener("pointermove", onPointerMove);
+            dragHandle.removeEventListener("pointerup", stopDragging);
+            dragHandle.removeEventListener("pointercancel", stopDragging);
+        };
+
+        dragHandle.addEventListener("pointermove", onPointerMove);
+        dragHandle.addEventListener("pointerup", stopDragging);
+        dragHandle.addEventListener("pointercancel", stopDragging);
+    });
 }
 
 function createPreviewWindow({ src, alt, title, description, documentationLink, itemIndex }) {
@@ -799,34 +789,24 @@ function createPreviewWindow({ src, alt, title, description, documentationLink, 
     linkEl.href = documentationLink || "#";
     linkEl.target = "_blank";
     linkEl.rel = "noopener noreferrer";
-    linkEl.textContent = documentationLink
-        ? `${documentationLink} ↗`
-        : "Documentation link unavailable";
+    linkEl.textContent = documentationLink ? `${documentationLink} ↗` : "Documentation link unavailable";
 
     const { left, top } = getPreviewWindowStartPosition();
     previewWindow.style.left = `${left}px`;
     previewWindow.style.top = `${top}px`;
 
-    content.appendChild(image);
     details.append(descriptionEl, linkIntroEl, linkEl);
-    content.appendChild(details);
+    content.append(image, details);
     header.append(titleEl, closeButton);
     previewWindow.append(header, content);
     document.body.appendChild(previewWindow);
+
     updateOpenPreviewCount(itemIndex, 1);
-
     bringPreviewWindowToFront(previewWindow);
-
-    previewWindow.addEventListener("mousedown", () => {
-        bringPreviewWindowToFront(previewWindow);
-    });
-
     setupPreviewWindowDragging(previewWindow, header);
 
-    closeButton.addEventListener("pointerdown", (event) => {
-        event.stopPropagation();
-    });
-
+    previewWindow.addEventListener("mousedown", () => bringPreviewWindowToFront(previewWindow));
+    closeButton.addEventListener("pointerdown", (event) => event.stopPropagation());
     closeButton.addEventListener("click", (event) => {
         event.stopPropagation();
         updateOpenPreviewCount(itemIndex, -1);
@@ -834,77 +814,36 @@ function createPreviewWindow({ src, alt, title, description, documentationLink, 
     });
 }
 
-function setupPreviewWindowDragging(previewWindow, dragHandle) {
-    dragHandle.style.cursor = "move";
+function populateGrid(items) {
+    if (!gridContainer) return;
+    gridContainer.innerHTML = items.map(({ item, sourceIndex }) => `
+        <article class="grid-item" data-item-index="${sourceIndex}">
+            <img class="grid-item-thumbnail" src="${item.thumbnail}" alt="${item.workName}">
+            <h3 class="grid-item-heading">${item.artistName}</h3>
+            <p class="grid-item-work-name">${item.workName}</p>
+        </article>
+    `).join("");
 
-    dragHandle.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        if (event.target.closest(".preview-window-close, .preview-window-link")) return;
-
-        const startX = event.clientX;
-        const startY = event.clientY;
-        const startLeft = previewWindow.offsetLeft;
-        const startTop = previewWindow.offsetTop;
-
-        let rafId = null;
-        let pendingLeft = startLeft;
-        let pendingTop = startTop;
-
-        bringPreviewWindowToFront(previewWindow);
-        dragHandle.setPointerCapture(event.pointerId);
-
-        const flushPosition = () => {
-            previewWindow.style.left = `${pendingLeft}px`;
-            previewWindow.style.top = `${pendingTop}px`;
-            rafId = null;
-        };
-
-        const onPointerMove = (moveEvent) => {
-            const maxLeft = Math.max(8, window.innerWidth - previewWindow.offsetWidth - 8);
-            const maxTop = Math.max(8, window.innerHeight - previewWindow.offsetHeight - 8);
-            const nextLeft = clamp(startLeft + (moveEvent.clientX - startX), 8, maxLeft);
-            const nextTop = clamp(startTop + (moveEvent.clientY - startY), 8, maxTop);
-
-            pendingLeft = nextLeft;
-            pendingTop = nextTop;
-
-            if (rafId === null) {
-                rafId = window.requestAnimationFrame(flushPosition);
-            }
-        };
-
-        const stopDragging = () => {
-            if (rafId !== null) {
-                window.cancelAnimationFrame(rafId);
-                flushPosition();
-            }
-
-            dragHandle.releasePointerCapture(event.pointerId);
-            dragHandle.removeEventListener("pointermove", onPointerMove);
-            dragHandle.removeEventListener("pointerup", stopDragging);
-            dragHandle.removeEventListener("pointercancel", stopDragging);
-        };
-
-        dragHandle.addEventListener("pointermove", onPointerMove);
-        dragHandle.addEventListener("pointerup", stopDragging);
-        dragHandle.addEventListener("pointercancel", stopDragging);
+    applyRandomCutShapes();
+    openPreviewCountByItemIndex.forEach((count, sourceIndex) => {
+        setThumbnailExpandedState(sourceIndex, count > 0);
     });
 }
 
-function setupThumbnailWindowLauncher(items) {
-    const gridContainer = document.querySelector(".grid-container");
+function setupThumbnailWindowLauncher() {
     if (!gridContainer || gridContainer.dataset.previewLauncherReady === "true") return;
 
     gridContainer.addEventListener("click", (event) => {
-        const thumbnail = event.target.closest(".grid-item-thumbnail");
+        const thumbnail = event.target.closest(THUMBNAIL_SELECTOR);
         if (!thumbnail || !gridContainer.contains(thumbnail)) return;
 
-        const gridItem = thumbnail.closest(".grid-item");
+        const gridItem = thumbnail.closest(GRID_ITEM_SELECTOR);
+        const itemIndex = Number(gridItem?.dataset.itemIndex);
+        const selectedItem = isValidItemIndex(itemIndex) ? sampleItems[itemIndex] : null;
+
         const artistName = gridItem?.querySelector(".grid-item-heading")?.textContent?.trim() || "Artwork";
         const workName = gridItem?.querySelector(".grid-item-work-name")?.textContent?.trim() || "";
         const title = workName ? `${artistName} - ${workName}` : artistName;
-        const itemIndex = Number(gridItem?.dataset.itemIndex);
-        const selectedItem = isValidItemIndex(itemIndex) ? items[itemIndex] : null;
 
         createPreviewWindow({
             src: thumbnail.src,
@@ -921,33 +860,24 @@ function setupThumbnailWindowLauncher(items) {
 
 function getFilteredItems(query) {
     const normalizedQuery = query.trim().toLowerCase();
-
     return sampleItems
         .map((item, sourceIndex) => ({ item, sourceIndex }))
         .filter(({ item }) => {
             if (!normalizedQuery) return true;
-
-            const artistName = item.artistName.toLowerCase();
-            const workName = item.workName.toLowerCase();
-            return artistName.includes(normalizedQuery) || workName.includes(normalizedQuery);
+            return (
+                item.artistName.toLowerCase().includes(normalizedQuery) ||
+                item.workName.toLowerCase().includes(normalizedQuery)
+            );
         });
 }
 
 function setupSearchFilter() {
-    const searchInput = document.querySelector("#archive-search");
     if (!searchInput) return;
-
     searchInput.addEventListener("input", (event) => {
-        const query = event.target.value || "";
-        populateGrid(getFilteredItems(query));
+        populateGrid(getFilteredItems(event.target.value || ""));
     });
 }
 
-/*
-    ----------------------------------------------------------------------------
-    5) STARTUP
-    ----------------------------------------------------------------------------
-*/
-// App entry point.
+setupThumbnailWindowLauncher();
 setupSearchFilter();
 populateGrid(getFilteredItems(""));

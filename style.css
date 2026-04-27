@@ -1,53 +1,63 @@
 *{
-    /* Reset default browser spacing so layout starts from a known baseline. */
     margin: 0;
-    /*
-        border-box sizing means width/height include padding and border.
-        This makes fixed-size elements (like preview windows) easier to reason
-        about and prevents accidental overflow from additive box model math.
-    */
     box-sizing: border-box;
 }
-/*
-    Global rem calibration:
-    Setting html font-size to 12.5px makes rem values easy to convert mentally
-    (e.g., 1.6rem = 20px). This creates consistent proportional scaling.
-*/
+
+:root{
+    --container-max: 1000px;
+    --panel-max: 1000px;
+    --content-padding-inline: 0;
+    --header-margin-bottom: 3rem;
+    --header-size: 3rem;
+    --header-line-height: 3.5rem;
+    --header-actions-justify: flex-end;
+    --search-width: min(100%, 22rem);
+    --archive-margin-top: 3rem;
+    --archive-padding: clamp(1.25rem, 2vw, 2rem);
+    --grid-columns: 6;
+    --grid-gap: 1rem;
+    --preview-width: 30rem;
+    --preview-height: 35rem;
+    --preview-min-width: 15rem;
+    --preview-min-height: 15rem;
+    --preview-resize: both;
+    --preview-header-padding: 0.75rem 0.75rem;
+    --preview-text-size: 1.5rem;
+}
+
 html{
     font-size: 12.5px;
 }
 
-/*
-    Body defaults:
-    - Establishes the project font for all inherited text
-    - Adds outer whitespace so content does not touch viewport edges
-*/
 body{
     font-family: 'Plantin MT Pro', sans-serif;
-    padding: 24px;
-    
+    padding: 0;
 }
 
-/*
-    Title container:
-    Kept width-aligned with the grid so heading and cards share the same visual
-    column boundaries.
-*/
-.header-container{
+.header-container,
+.grid-container{
     width: 100%;
-    max-width: 1200px;
-    margin-bottom: 3rem;
+    max-width: var(--container-max);
+}
+
+.archive-panel{
+    width: 100%;
+    max-width: var(--panel-max);
+}
+
+.header-container{
+    margin-bottom: var(--header-margin-bottom);
 }
 
 .header-actions{
     width: 100%;
     display: flex;
-    justify-content: flex-end;
+    justify-content: var(--header-actions-justify);
     margin-bottom: 1.125rem;
 }
 
 .archive-search-input{
-    width: min(100%, 22rem);
+    width: var(--search-width);
     border: 1px solid #1f1f1f;
     padding: 0.55rem 0.75rem;
     font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
@@ -64,19 +74,12 @@ body{
     font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
     font-weight: 400;
     margin: 0;
-    font-size: 3rem;
+    font-size: var(--header-size);
     text-transform: uppercase;
-    line-height: 3.5rem;
+    line-height: var(--header-line-height);
     letter-spacing: 0.025em;
-    margin-bottom: 0rem;
 }
 
-/*
-    Main shell:
-    - full-width wrapper with minimum viewport height
-    - flex column for vertical stacking (header above grid)
-    - horizontal centering for both header and grid containers
-*/
 .content-container{
     width: 100%;
     min-height: 100vh;
@@ -84,25 +87,36 @@ body{
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
+    position: relative;
+    isolation: isolate;
+    padding-inline: var(--content-padding-inline);
 }
 
-/*
-    Archive grid:
-    A fixed 6-column system for desktop prototype view.
-    `minmax(0, 1fr)` prevents grid-item overflow from forcing columns wider.
-*/
+.content-container::before{
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-color: #2f5d55;
+    background-image: url('./images/web-background-attempt-3.webp');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.archive-panel{
+    margin-top: var(--archive-margin-top);
+    background: #fff;
+    padding: var(--archive-padding);
+}
+
 .grid-container{
-    width: 100%;
-    max-width: 1200px;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+    gap: var(--grid-gap);
 }
 
-/*
-    Individual card wrapper:
-    Vertical flow for image -> artist -> work title with small rhythm spacing.
-*/
 .grid-item{
     display: flex;
     flex-direction: column;
@@ -110,12 +124,6 @@ body{
     margin-bottom: 1rem;
 }
 
-/*
-    Thumbnail presentation:
-    - starts as a random "paper cut" silhouette via CSS custom property
-    - smoothly transitions to a full square on hover using second variable
-    - cursor pointer communicates that thumbnail is interactive (opens preview)
-*/
 .grid-item-thumbnail{
     width: 100%;
     aspect-ratio: 1 / 1;
@@ -128,22 +136,12 @@ body{
     cursor: pointer;
 }
 
-.grid-item:hover .grid-item-thumbnail{
-    clip-path: var(--clip-full);
-    -webkit-clip-path: var(--clip-full);
-}
-
-/*
-    "Pinned open" thumbnail state:
-    JS adds this class while one or more preview windows are open for an item.
-    This mirrors the hover shape so the expanded visual persists after mouseout.
-*/
+.grid-item:hover .grid-item-thumbnail,
 .grid-item-thumbnail.grid-item-thumbnail--pinned-open{
     clip-path: var(--clip-full);
     -webkit-clip-path: var(--clip-full);
 }
 
-/* Artist label styling (per card). */
 .grid-item-heading{
     font-family: 'Plantin MT Pro', serif;
     font-size: 1.25rem;
@@ -151,7 +149,6 @@ body{
     margin-bottom: 0;
 }
 
-/* Secondary metadata under artist name (work title). */
 .grid-item-work-name{
     font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
     font-weight: 400;
@@ -160,36 +157,24 @@ body{
     color: #333;
 }
 
-/*
-    Floating preview window (spawned by JS on thumbnail click):
-    - fixed positioning allows desktop-like independent windows
-    - explicit width/height set initial footprint
-    - min-size safeguards prevent collapsing while resizing
-    - resize: both allows bottom-right drag to resize in supporting browsers
-*/
 .preview-window{
     position: fixed;
-    width: 30rem;
-    height: 35rem;
-    min-width: 15rem;
-    min-height: 15rem;
+    width: var(--preview-width);
+    height: var(--preview-height);
+    min-width: var(--preview-min-width);
+    min-height: var(--preview-min-height);
     border: 1px solid #1f1f1f;
     background: #fff;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    resize: both;
+    resize: var(--preview-resize);
 }
 
-/*
-    Draggable header strip:
-    JS attaches pointer drag behavior to this area only.
-    user-select is disabled so dragging does not highlight text.
-*/
 .preview-window-header{
     min-height: 2.4rem;
-    padding: 0.75rem 0.75rem;
+    padding: var(--preview-header-padding);
     border-bottom: 1px solid #e2e2e2;
     display: flex;
     align-items: center;
@@ -198,10 +183,6 @@ body{
     user-select: none;
 }
 
-/*
-    Window title:
-    Ellipsis prevents long artist/work names from breaking header layout.
-*/
 .preview-window-title{
     font-size: 1rem;
     font-weight: 600;
@@ -210,10 +191,6 @@ body{
     text-overflow: ellipsis;
 }
 
-/*
-    Close button:
-    Styled as icon-like control. JS click handler removes parent window node.
-*/
 .preview-window-close{
     border: 0;
     background: transparent;
@@ -223,12 +200,6 @@ body{
     padding: 0;
 }
 
-/*
-    Main window content stack:
-    - grows to fill available height
-    - vertical layout: image first, details card second
-    - overflow:auto lets content scroll when resized smaller than content needs
-*/
 .preview-window-content{
     flex: 1;
     min-height: 0;
@@ -240,11 +211,6 @@ body{
     overflow: auto;
 }
 
-/*
-    Preview image behavior:
-    Uses contain so full artwork remains visible without cropping.
-    height: 65% reserves lower area for description + documentation link.
-*/
 .preview-window-image{
     width: 100%;
     min-height: 0;
@@ -252,10 +218,6 @@ body{
     object-fit: contain;
 }
 
-/*
-    Metadata panel under image:
-    Light border and white background separate text from gray content area.
-*/
 .preview-window-details{
     display: flex;
     flex-direction: column;
@@ -265,32 +227,157 @@ body{
     padding: 0.5rem;
 }
 .preview-window-details p{
-    font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
-    font-weight: 400;
-    font-size: 1.5rem;
-    letter-spacing: 0.05em;
     line-height: 1.35;
     color: #222;
 }
 
-/* Project description paragraph typography. */
 .preview-window-description{
     margin-bottom: 1.25rem;
 }
 
-/* .preview-window-link-intro{
-
-} */
-/*
-    Documentation URL link:
-    word-break prevents very long URLs from overflowing narrow window widths.
-*/
+.preview-window-details p,
 .preview-window-link{
     font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
     font-weight: 400;
-    font-size: 1.5rem;
+    font-size: var(--preview-text-size);
     letter-spacing: 0.05em;
+}
+
+.preview-window-details p{
+    color: #222;
+}
+
+.preview-window-link{
     color: #0047b3;
     text-decoration: underline;
     word-break: break-all;
+}
+
+@media (max-width: 400px){
+    :root{
+        --content-padding-inline: 0.5rem;
+        --header-margin-bottom: 1.5rem;
+        --header-size: 1.7rem;
+        --header-line-height: 2rem;
+        --header-actions-justify: stretch;
+        --search-width: 100%;
+        --archive-margin-top: 1.5rem;
+        --archive-padding: 0.75rem;
+        --grid-columns: 1;
+        --grid-gap: 0.75rem;
+        --preview-width: 96vw;
+        --preview-height: 76vh;
+        --preview-min-width: 0;
+        --preview-min-height: 12rem;
+        --preview-resize: none;
+        --preview-header-padding: 0.45rem 0.5rem;
+        --preview-text-size: 1rem;
+    }
+
+    .grid-item-heading{
+        font-size: 1rem;
+    }
+
+    .grid-item-work-name{
+        font-size: 0.85rem;
+    }
+
+}
+
+@media (min-width: 401px) and (max-width: 599px){
+    :root{
+        --content-padding-inline: 0.75rem;
+        --header-margin-bottom: 1.75rem;
+        --header-size: 1.9rem;
+        --header-line-height: 2.2rem;
+        --header-actions-justify: stretch;
+        --search-width: 100%;
+        --archive-margin-top: 1.75rem;
+        --archive-padding: 0.9rem;
+        --grid-columns: 2;
+        --grid-gap: 0.8rem;
+        --preview-width: min(95vw, 22rem);
+        --preview-height: min(78vh, 28rem);
+        --preview-min-width: 0;
+        --preview-min-height: 13rem;
+        --preview-resize: none;
+        --preview-header-padding: 0.5rem 0.55rem;
+        --preview-text-size: 1.05rem;
+    }
+
+    .grid-item-heading{
+        font-size: 1.05rem;
+    }
+
+    .grid-item-work-name{
+        font-size: 0.9rem;
+    }
+
+}
+
+@media (min-width: 600px) and (max-width: 767px){
+    :root{
+        --content-padding-inline: 1rem;
+        --header-margin-bottom: 2rem;
+        --header-size: 2.1rem;
+        --header-line-height: 2.5rem;
+        --archive-margin-top: 2rem;
+        --archive-padding: 1rem;
+        --panel-max: 500px;
+        --grid-columns: 2;
+        --grid-gap: 0.9rem;
+        --preview-width: min(92vw, 24rem);
+        --preview-height: min(80vh, 30rem);
+    }
+}
+
+@media (min-width: 768px) and (max-width: 999px){
+    :root{
+        --content-padding-inline: 1.5rem;
+        --header-margin-bottom: 2rem;
+        --header-size: 2.5rem;
+        --header-line-height: 3rem;
+        --archive-margin-top: 2.5rem;
+        --archive-padding: 1.25rem;
+        --panel-max: 800px;
+        --grid-columns: 4;
+        --preview-width: min(85vw, 28rem);
+        --preview-height: min(75vh, 32rem);
+    }
+}
+
+@media (min-width: 1000px) and (max-width: 1439px){
+    :root{
+        --container-max: 1000px;
+        --panel-max: 1000px;
+        --content-padding-inline: 0;
+        --header-size: 2.8rem;
+        --header-line-height: 3.2rem;
+        --grid-columns: 5;
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1799px){
+    :root{
+        --container-max: 1200px;
+        --panel-max: 1200px;
+        --content-padding-inline: 0;
+        --header-size: 3rem;
+        --header-line-height: 3.5rem;
+        --grid-columns: 6;
+    }
+}
+
+@media (min-width: 1800px){
+    :root{
+        --container-max: 1560px;
+        --panel-max: 1560px;
+        --content-padding-inline: 0;
+        --header-size: 3.35rem;
+        --header-line-height: 3.9rem;
+        --grid-columns: 7;
+        --grid-gap: 1.25rem;
+        --preview-width: 34rem;
+        --preview-height: 38rem;
+    }
 }
