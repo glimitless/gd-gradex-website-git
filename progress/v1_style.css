@@ -1,0 +1,66 @@
+*{
+    margin: 0;
+    box-sizing: border-box;
+}
+html{
+    font-size: 12.5px;
+}
+
+body{
+    font-family: 'Plantin MT Pro', sans-serif;
+    padding: 24px;
+    
+}
+h3{
+    margin-bottom: 0;
+}
+
+.header-container{
+    width: 100%;
+    max-width: 1200px;
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+}
+.content-container{
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.grid-container{
+    width: 100%;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1.125rem;
+}
+
+.grid-item{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.grid-item-thumbnail{
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 0;
+    margin-bottom: 0.5rem;
+}
+
+.grid-item-heading{
+    font-family: 'Plantin MT Pro', serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.grid-item-work-name{
+    font-size: 1rem;
+    color: #333;
+}
+

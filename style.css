@@ -38,6 +38,28 @@ body{
     max-width: 1200px;
     margin-bottom: 3rem;
 }
+
+.header-actions{
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.125rem;
+}
+
+.archive-search-input{
+    width: min(100%, 22rem);
+    border: 1px solid #1f1f1f;
+    padding: 0.55rem 0.75rem;
+    font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+}
+
+.archive-search-input:focus{
+    outline: 2px solid #1f1f1f;
+    outline-offset: 1px;
+}
+
 .header-container h1{
     font-family: 'Neue Haas Grotesk Display Pro', sans-serif;
     font-weight: 400;
